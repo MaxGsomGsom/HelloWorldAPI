@@ -55,8 +55,8 @@ class UserDialog extends \Phalcon\Mvc\Model
 
     public function initialize()
     {
-        $app->belongsTo("login", "User", "login");
-        $app->belongsTo("dialog_id", "Dialog", "dialog_id");
+        $this->belongsTo("login", "User", "login");
+        $this->belongsTo("dialog_id", "Dialog", "dialog_id");
     }
 
 }

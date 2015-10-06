@@ -61,9 +61,9 @@ class User extends \Phalcon\Mvc\Model
 
     public function initialize()
     {
-        $app->hasMany("login", "Message", "login");
-        $app->hasMany("login", "Image", "login");
-        $app->hasMany("login", "UserDialog", "login");
+        $this->hasMany("login", "Message", "login");
+        $this->hasMany("login", "Image", "login");
+        $this->hasMany("login", "UserDialog", "login");
     }
 
 }
