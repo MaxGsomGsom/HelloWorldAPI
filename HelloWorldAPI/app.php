@@ -152,6 +152,111 @@ $app->get('/dialog/add', function () use ($app) {
 
 
 
+
+
+$app->get('/message/add', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+
+        $dialog = Dialog::findFirst(
+            array(
+                "dialog_id = :dialog_id:",
+                'bind' => array(
+                    'dialog_id'    => $req->get("dialog_id")
+                )
+            )
+        );
+
+        if ($dialog) {
+
+
+            $myLogin = $app->session->get("auth")["login"];
+
+            $message = new Message();
+            $message->login = $myLogin;
+			$message->dialog_id = $req->get("dialog_id");
+			$message->time = time();
+			$message->text = $req->get("text");
+            $success1 = $message->save();
+			
+			$dialog->time = $message->time;
+			$success2 = $dialog->save();
+
+            if ($success1 && $success2) {
+                return Status(true);
+            }
+
+
+        }
+
+    }
+
+    return Status(false);
+
+});
+
+
+
+$app->get('/dialog/show', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+		
+		$myLogin = $app->session->get("auth")["login"];
+		
+        $userDialogs = UserDialog::find(
+            array(
+                "login = :login:",
+                'bind' => array(
+                    'login'    => $myLogin
+                )
+            )
+        );
+		
+		$dialogs = array();
+		
+		foreach $userDialog in $userDialogs as Dialog {
+		
+			//$dialog = Dialog::findFirst(
+			//	array(
+			//		"dialog_id = :dialog_id:",
+			//		'bind' => array(
+			//			'dialog_id'    => $userDialog->dialog_id
+			//		)
+			//	)
+			//);
+			
+			$dialog = $userDialog->dialog;
+			
+			
+			$dialogs.add( 
+				array( 
+					"dialog_id" => $dialog->dialog_id, 
+					"name" => $dialog->name,
+					"time" => $dialog->time ))
+		}
+		
+		$res = new Response();
+        $res->setJsonContent($dialogs);
+		return $res;
+
+    }
+
+    return Status(false);
+
+});
+
+
+
 $app->get('/dialog/delete', function () use ($app) {
 
     $auth=$app->session->get("auth");
