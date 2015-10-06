@@ -68,9 +68,9 @@ class Message extends \Phalcon\Mvc\Model
 
     public function initialize()
     {
-        $app->belongsTo("dialog_id", "Dialog", "dialog_id");
-        $app->belongsTo("login", "User", "login");
-        $app->hasMany("message_id", "Image", "message_id");
+        $this->belongsTo("dialog_id", "Dialog", "dialog_id");
+        $this->belongsTo("login", "User", "login");
+        $this->hasMany("message_id", "Image", "message_id");
     }
 
 }

@@ -61,8 +61,8 @@ class Image extends \Phalcon\Mvc\Model
 
     public function initialize()
     {
-        $app->belongsTo("login", "User", "login");
-        $app->belongsTo("message_id", "Message", "message_id");
+        $this->belongsTo("login", "User", "login");
+        $this->belongsTo("message_id", "Message", "message_id");
     }
 
 }

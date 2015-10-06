@@ -55,8 +55,8 @@ class Dialog extends \Phalcon\Mvc\Model
 
     public function initialize()
     {
-        $app->hasMany("dialog_id", "UserDialog", "dialog_id");
-        $app->hasMany("dialog_id", "Message", "dialog_id");
+        $this->hasMany("dialog_id", "UserDialog", "dialog_id");
+        $this->hasMany("dialog_id", "Message", "dialog_id");
     }
 
 }

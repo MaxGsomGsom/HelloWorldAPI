@@ -14,7 +14,7 @@ $app->get('/', function () use ($app) {
     echo $app['view']->render('index');
 });
 
-
+//login, pass, name, info
 $app->get('/register', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -56,7 +56,7 @@ $app->get('/register', function () use ($app) {
 });
 
 
-
+//login, pass
 $app->get('/login', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -97,7 +97,7 @@ $app->get('/login', function () use ($app) {
 
 
 
-
+//login
 $app->get('/dialog/add', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -111,7 +111,7 @@ $app->get('/dialog/add', function () use ($app) {
             array(
                 "login = :user:",
                 'bind' => array(
-                    'user'    => $req->get("user")
+                    'user'    => $req->get("login")
                 )
             )
         );
@@ -153,7 +153,7 @@ $app->get('/dialog/add', function () use ($app) {
 
 
 
-
+//dialog_id, text
 $app->get('/message/add', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -184,11 +184,15 @@ $app->get('/message/add', function () use ($app) {
 			$message->text = $req->get("text");
             $success1 = $message->save();
 			
-			$dialog->time = $message->time;
-			$success2 = $dialog->save();
 
-            if ($success1 && $success2) {
-                return Status(true);
+            if ($success1) {
+
+                $dialog->time = $message->time;
+                $success2 = $dialog->save();
+
+                if ($success2) {
+                    return Status(true);
+                }
             }
 
 
@@ -208,9 +212,6 @@ $app->get('/dialog/show', function () use ($app) {
 
     if ($auth) {
 
-        $req = $app->request;
-
-		
 		$myLogin = $app->session->get("auth")["login"];
 		
         $userDialogs = UserDialog::find(
@@ -222,31 +223,21 @@ $app->get('/dialog/show', function () use ($app) {
             )
         );
 		
-		$dialogs = array();
-		
-		foreach $userDialog in $userDialogs as Dialog {
-		
-			//$dialog = Dialog::findFirst(
-			//	array(
-			//		"dialog_id = :dialog_id:",
-			//		'bind' => array(
-			//			'dialog_id'    => $userDialog->dialog_id
-			//		)
-			//	)
-			//);
-			
+		$data = array();
+
+
+		foreach ($userDialogs as $userDialog) {
+
 			$dialog = $userDialog->dialog;
-			
-			
-			$dialogs.add( 
-				array( 
-					"dialog_id" => $dialog->dialog_id, 
+
+            $data[] = array(
+					"dialog_id" => $dialog->dialog_id,
 					"name" => $dialog->name,
-					"time" => $dialog->time ))
+					"time" => $dialog->time);
 		}
 		
 		$res = new Response();
-        $res->setJsonContent($dialogs);
+        $res->setJsonContent($data);
 		return $res;
 
     }
@@ -256,7 +247,48 @@ $app->get('/dialog/show', function () use ($app) {
 });
 
 
+//dialog_id, time
+$app->get('/message/show', function () use ($app) {
 
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+        $messages = Message::find(
+            array(
+                "dialog_id = :dialog_id: AND time>:time:",
+                'bind' => array(
+                    'dialog_id'    => $req->get("dialog_id"),
+                    'time' => $req->get("time")
+                )
+            )
+        );
+
+        $data = array();
+
+
+        foreach ($messages as $message) {
+
+            $data[] = array(
+                "login" => $message->login,
+                "time" => $message->time,
+                "text" => $message->text);
+        }
+
+        $res = new Response();
+        $res->setJsonContent($data);
+        return $res;
+
+    }
+
+    return Status(false);
+
+});
+
+
+//dialog_id
 $app->get('/dialog/delete', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -270,7 +302,7 @@ $app->get('/dialog/delete', function () use ($app) {
             array(
                 "dialog_id = :dialog_id: AND login = :login:",
                 'bind' => array(
-                    'dialog_id'    => $req->get("id"),
+                    'dialog_id'    => $req->get("dialog_id"),
                     'login' => $myLogin
                 )
             )
