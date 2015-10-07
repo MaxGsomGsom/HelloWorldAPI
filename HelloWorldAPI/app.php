@@ -10,9 +10,9 @@ use Phalcon\Http\Response;
 /**
  * Add your routes here
  */
-$app->get('/', function () use ($app) {
-    echo $app['view']->render('index');
-});
+//$app->get('/', function () use ($app) {
+//    echo $app['view']->render('index');
+//});
 
 //login, pass, name, info
 $app->get('/register', function () use ($app) {
@@ -152,7 +152,6 @@ $app->get('/dialog/add', function () use ($app) {
 
 
 
-
 //dialog_id, text
 $app->get('/message/add', function () use ($app) {
 
@@ -230,12 +229,34 @@ $app->get('/dialog/show', function () use ($app) {
 
 			$dialog = $userDialog->dialog;
 
+            $users = UserDialog::find(
+                array(
+                    "dialog_id = :dialog_id: AND NOT login = :login:",
+                    'bind' => array(
+                        'dialog_id'    => $dialog->dialog_id,
+                        'login'    => $myLogin
+                    )
+                )
+            );
+
+            $usersData = "";
+
+            foreach ($users as $user) {
+                $usersData = $usersData. $user->login.", ";
+            }
+
+            $usersData = rtrim($usersData, ", ");
+
             $data[] = array(
-					"dialog_id" => $dialog->dialog_id,
-					"name" => $dialog->name,
-					"time" => $dialog->time);
-		}
-		
+                "dialog_id" => $dialog->dialog_id,
+                "name" => $dialog->name,
+                "time" => $dialog->time,
+                "users" => $usersData
+                );
+
+
+        }
+
 		$res = new Response();
         $res->setJsonContent($data);
 		return $res;
@@ -288,6 +309,89 @@ $app->get('/message/show', function () use ($app) {
 });
 
 
+
+//query
+$app->get('/user/search', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+        $users = User::find(
+            array(
+                "login LIKE :login: OR name LIKE :name: OR info LIKE :info:",
+                'bind' => array(
+                    'login'    => "%".$req->get("query")."%",
+                    'name' => "%".$req->get("query")."%",
+                    'info' => "%".$req->get("query")."%"
+                )
+            )
+        );
+
+        $data = array();
+
+
+        foreach ($users as $user) {
+
+            $data[] = array(
+                'login' => $user->login,
+                'name' => $user->name,
+                'info' => $user->info
+            );
+        }
+
+        $res = new Response();
+        $res->setJsonContent($data);
+        return $res;
+
+    }
+
+    return Status(false);
+
+});
+
+
+
+//login
+$app->get('/user/show', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+        $user = User::findFirst(
+            array(
+                "login=:login:",
+                'bind' => array(
+                    'login' => $req->get("login")
+                )
+            )
+        );
+
+        if ($user) {
+
+            $data = array(
+                'login' => $user->login,
+                'name' => $user->name,
+                'info' => $user->info
+            );
+
+            $res = new Response();
+            $res->setJsonContent($data);
+            return $res;
+
+        }
+    }
+
+    return Status(false);
+
+});
+
+
 //dialog_id
 $app->get('/dialog/delete', function () use ($app) {
 
@@ -312,6 +416,45 @@ $app->get('/dialog/delete', function () use ($app) {
 
             $userDialog->delete();
             return Status(true);
+        }
+
+    }
+
+    return Status(false);
+
+});
+
+
+//dialog_id, name
+$app->get('/dialog/rename', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+        $myLogin = $app->session->get("auth")["login"];
+
+        $userDialog = UserDialog::findFirst(
+            array(
+                "dialog_id = :dialog_id: AND login = :login:",
+                'bind' => array(
+                    'dialog_id'    => $req->get("dialog_id"),
+                    'login' => $myLogin
+                )
+            )
+        );
+
+        if ($userDialog) {
+
+            $dialog = $userDialog->dialog;
+
+            $dialog->name = $req->get("name");
+            $succsess = $dialog->save();
+
+            if ($succsess) {
+                return Status(true);
+            }
         }
 
     }
