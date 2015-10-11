@@ -465,6 +465,31 @@ $app->get('/dialog/rename', function () use ($app) {
 
 
 
+
+//
+$app->get('/login/check', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $myLogin = $app->session->get("auth")["login"];
+
+        $res = new Response();
+        $res->setJsonContent(array("login"=>$myLogin));
+        return $res;
+
+    }
+
+    return Status(false);
+
+});
+
+
+
+
+
+
 /**
  * Not found handler
  */
@@ -490,5 +515,6 @@ function Status($val){
 
     return $res;
 }
+
 
 
