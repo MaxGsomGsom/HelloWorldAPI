@@ -295,7 +295,8 @@ $app->get('/message/show', function () use ($app) {
             $data[] = array(
                 "login" => $message->login,
                 "time" => $message->time,
-                "text" => $message->text);
+                "text" => $message->text,
+                "message_id" => $message->message_id);
         }
 
         $res = new Response();
