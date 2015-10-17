@@ -9,6 +9,15 @@ class UserDialog extends \Phalcon\Mvc\Model
      */
     public $login;
 
+
+
+    /**
+     *
+     * @var bool
+     */
+    public $new;
+
+
     /**
      *
      * @var integer
