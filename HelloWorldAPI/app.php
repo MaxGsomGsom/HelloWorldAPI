@@ -134,6 +134,7 @@ $app->get('/dialog/add', function () use ($app) {
 
             $userDialog2 = new UserDialog();
             $userDialog2->login = $opponent->login;
+            $userDialog2->new = true;
             $userDialog2->dialog_id = $dialog->dialog_id;
             $success3 = $userDialog2->save();
 
@@ -160,40 +161,53 @@ $app->get('/message/add', function () use ($app) {
     if ($auth) {
 
         $req = $app->request;
+        $myLogin = $app->session->get("auth")["login"];
 
-
-        $dialog = Dialog::findFirst(
+        $userDialog = UserDialog::findFirst(
             array(
-                "dialog_id = :dialog_id:",
+                "dialog_id = :dialog_id: AND login = :login:",
                 'bind' => array(
-                    'dialog_id'    => $req->get("dialog_id")
+                    'dialog_id'    => $req->get("dialog_id"),
+                    'login' => $myLogin
                 )
             )
         );
 
-        if ($dialog) {
+        if ($userDialog) {
 
 
-            $myLogin = $app->session->get("auth")["login"];
+            $dialog=$userDialog->dialog;
 
-            $message = new Message();
-            $message->login = $myLogin;
-			$message->dialog_id = $req->get("dialog_id");
-			$message->time = time();
-			$message->text = $req->get("text");
-            $success1 = $message->save();
-			
+            if ($dialog) {
 
-            if ($success1) {
+                $message = new Message();
+                $message->login = $myLogin;
+                $message->dialog_id = $req->get("dialog_id");
+                $message->time = time();
+                $message->text = $req->get("text");
+                $success1 = $message->save();
 
-                $dialog->time = $message->time;
-                $success2 = $dialog->save();
 
-                if ($success2) {
-                    return Status(true);
+                if ($success1) {
+
+                    $dialog->time = $message->time;
+                    $success2 = $dialog->save();
+
+                    $userDialogsAll = $dialog->UserDialog;
+
+                    foreach ($userDialogsAll as $item) {
+                        if ($item->login != $myLogin) {
+                            $item->new = true;
+                            $item->save();
+                        }
+                    }
+
+
+                    if ($success2) {
+                        return Status(true);
+                    }
                 }
             }
-
 
         }
 
@@ -251,7 +265,8 @@ $app->get('/dialog/show', function () use ($app) {
                 "dialog_id" => $dialog->dialog_id,
                 "name" => $dialog->name,
                 "time" => $dialog->time,
-                "users" => $usersData
+                "users" => $usersData,
+                "new"  => $userDialog->new
                 );
 
 
@@ -268,6 +283,57 @@ $app->get('/dialog/show', function () use ($app) {
 });
 
 
+
+$app->get('/dialog/check', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $myLogin = $app->session->get("auth")["login"];
+
+        $userDialogs = UserDialog::find(
+            array(
+                "login = :login:",
+                'bind' => array(
+                    'login'    => $myLogin
+                )
+            )
+        );
+
+        $data = array();
+
+
+        foreach ($userDialogs as $userDialog) {
+
+            $dialog = $userDialog->dialog;
+
+            if ($userDialog->new == true) {
+                $data[] = array(
+                    "dialog_id" => $dialog->dialog_id,
+                    "name" => $dialog->name
+                );
+            }
+
+
+        }
+
+        if (count($data)>0) {
+            $res = new Response();
+            $res->setJsonContent($data);
+            return $res;
+        }
+        else {
+            return Status(true);
+        }
+
+    }
+
+    return Status(false);
+
+});
+
+
 //dialog_id, time
 $app->get('/message/show', function () use ($app) {
 
@@ -276,32 +342,50 @@ $app->get('/message/show', function () use ($app) {
     if ($auth) {
 
         $req = $app->request;
+        $myLogin = $app->session->get("auth")["login"];
 
-        $messages = Message::find(
-            array(
-                "dialog_id = :dialog_id: AND time>:time:",
-                'bind' => array(
-                    'dialog_id'    => $req->get("dialog_id"),
-                    'time' => $req->get("time")
-                )
+        $userDialog = UserDialog::findFirst(array(
+            "dialog_id = :dialog_id: AND login = :login:",
+            'bind' => array(
+                'dialog_id'    => $req->get("dialog_id"),
+                'login' => $myLogin
             )
-        );
-
-        $data = array();
+        ));
 
 
-        foreach ($messages as $message) {
 
-            $data[] = array(
-                "login" => $message->login,
-                "time" => $message->time,
-                "text" => $message->text,
-                "message_id" => $message->message_id);
+        if ($userDialog ) {
+            $dialog = $userDialog->dialog;
+
+            if ($dialog) {
+
+                $messages = $dialog->message;
+
+
+                $data = array();
+
+                foreach ($messages as $message) {
+
+                    if ($req->get("time") < $message->time) {
+                        $data[] = array(
+                            "login" => $message->login,
+                            "time" => $message->time,
+                            "text" => $message->text,
+                            "message_id" => $message->message_id);
+                    }
+                }
+
+                $res = new Response();
+                $res->setJsonContent($data);
+
+
+                $userDialog->new = false;
+                $userDialog->save();
+
+
+                return $res;
+            }
         }
-
-        $res = new Response();
-        $res->setJsonContent($data);
-        return $res;
 
     }
 
@@ -319,14 +403,16 @@ $app->get('/user/search', function () use ($app) {
     if ($auth) {
 
         $req = $app->request;
+        $myLogin = $app->session->get("auth")["login"];
 
         $users = User::find(
             array(
-                "login LIKE :login: OR name LIKE :name: OR info LIKE :info:",
+                "(login LIKE :login: OR name LIKE :name: OR info LIKE :info:) AND login != :myLogin:",
                 'bind' => array(
                     'login'    => "%".$req->get("query")."%",
                     'name' => "%".$req->get("query")."%",
-                    'info' => "%".$req->get("query")."%"
+                    'info' => "%".$req->get("query")."%",
+                    'myLogin' => $myLogin
                 )
             )
         );
@@ -486,6 +572,45 @@ $app->get('/login/check', function () use ($app) {
 
 });
 
+
+//oldpass, newpass, name, info
+$app->get('/user/change', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+        $myLogin = $app->session->get("auth")["login"];
+
+        $user = User::findFirst(
+            array(
+                "login = :login:",
+                'bind' => array(
+                    'login' => $myLogin
+                )
+            )
+        );
+
+        $oldPass = md5($req->get("oldpass"));
+        if ($user && $oldPass == $user->pass) {
+
+            $user->pass = md5($req->get("newpass"));
+            $user->name = $req->get("name");
+            $user->info = $req->get("info");
+
+            $succsess = $user->save();
+
+            if ($succsess) {
+                return Status(true);
+            }
+        }
+
+    }
+
+    return Status(false);
+
+});
 
 
 

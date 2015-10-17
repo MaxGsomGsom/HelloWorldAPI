@@ -3,6 +3,7 @@
 class Dialog extends \Phalcon\Mvc\Model
 {
 
+
     /**
      *
      * @var string
