@@ -183,7 +183,12 @@ $app->get('/message/add', function () use ($app) {
                 $message->login = $myLogin;
                 $message->dialog_id = $req->get("dialog_id");
                 $message->time = time();
-                $message->text = $req->get("text");
+
+
+                $str = $req->get("text");
+
+                $message->text = $str;
+
                 $success1 = $message->save();
 
 
@@ -616,8 +621,8 @@ $app->post('/avatar/upload', function () use ($app) {
     if ($auth) {
 
         $myLogin = $app->session->get("auth")["login"];
-        $reqFile = $app->request->getUploadedFiles()[0];
-        $fileData = file_get_contents($reqFile->getTempName());
+        //$reqFile = $app->request->getUploadedFiles()[0];
+        //$fileData = file_get_contents($reqFile->getTempName());
 
         $user = User::findFirst(
             array(
@@ -628,15 +633,18 @@ $app->post('/avatar/upload', function () use ($app) {
             )
         );
 
-        if ($user && $fileData) {
+        if ($user /*&& $fileData*/) {
 
-            $ava = $user->getImage()[0];
+            $avaAll = $user->getImage();
 
-            if ($ava == null) {
+            if (count($avaAll) == 0) {
                 $ava = new Image();
                 $ava->login = $myLogin;
             }
-            $ava->img = $fileData;
+            else {
+                $ava = $avaAll[0];
+            }
+            $ava->img = $app->request->getRawBody();//$fileData;
 
             $succsess = $ava->save();
 
