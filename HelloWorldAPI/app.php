@@ -96,7 +96,6 @@ $app->get('/login', function () use ($app) {
 });
 
 
-
 //login
 $app->get('/dialog/add', function () use ($app) {
 
@@ -129,6 +128,7 @@ $app->get('/dialog/add', function () use ($app) {
 
             $userDialog1 = new UserDialog();
             $userDialog1->login = $myLogin;
+            $userDialog1->new = true;
             $userDialog1->dialog_id = $dialog->dialog_id;
             $success2 = $userDialog1->save();
 
@@ -150,7 +150,6 @@ $app->get('/dialog/add', function () use ($app) {
     return Status(false);
 
 });
-
 
 
 //dialog_id, text
@@ -218,7 +217,6 @@ $app->get('/message/add', function () use ($app) {
 });
 
 
-
 $app->get('/dialog/show', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -283,7 +281,6 @@ $app->get('/dialog/show', function () use ($app) {
 });
 
 
-
 $app->get('/dialog/check', function () use ($app) {
 
     $auth=$app->session->get("auth");
@@ -311,7 +308,9 @@ $app->get('/dialog/check', function () use ($app) {
             if ($userDialog->new == true) {
                 $data[] = array(
                     "dialog_id" => $dialog->dialog_id,
-                    "name" => $dialog->name
+                    "name" => $dialog->name,
+                    "time" => $dialog->time,
+                    "new"  => $userDialog->new
                 );
             }
 
@@ -394,7 +393,6 @@ $app->get('/message/show', function () use ($app) {
 });
 
 
-
 //query
 $app->get('/user/search', function () use ($app) {
 
@@ -438,7 +436,6 @@ $app->get('/user/search', function () use ($app) {
     return Status(false);
 
 });
-
 
 
 //login
@@ -551,8 +548,6 @@ $app->get('/dialog/rename', function () use ($app) {
 });
 
 
-
-
 //
 $app->get('/login/check', function () use ($app) {
 
@@ -613,6 +608,92 @@ $app->get('/user/change', function () use ($app) {
 });
 
 
+//
+$app->post('/avatar/upload', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $myLogin = $app->session->get("auth")["login"];
+        $reqFile = $app->request->getUploadedFiles()[0];
+        $fileData = file_get_contents($reqFile->getTempName());
+
+        $user = User::findFirst(
+            array(
+                "login = :login:",
+                'bind' => array(
+                    'login' => $myLogin
+                )
+            )
+        );
+
+        if ($user && $fileData) {
+
+            $ava = $user->getImage()[0];
+
+            if ($ava == null) {
+                $ava = new Image();
+                $ava->login = $myLogin;
+            }
+            $ava->img = $fileData;
+
+            $succsess = $ava->save();
+
+            if ($succsess) {
+                return Status(true);
+            }
+        }
+
+    }
+
+    return Status(false);
+
+});
+
+
+//login
+$app->get('/avatar/show', function () use ($app) {
+
+    $auth=$app->session->get("auth");
+
+    if ($auth) {
+
+        $req = $app->request;
+
+        $login = $req->get("login");
+        if ($login == null) {
+            $login = $app->session->get("auth")["login"];
+        }
+
+        $user = User::findFirst(
+            array(
+                "login = :login:",
+                'bind' => array(
+                    'login' => $login
+                )
+            )
+        );
+
+        if ($user) {
+
+            $ava = $user->getImage()[0];
+
+            if ($ava) {
+                $res = new Response();
+                $res->setContent($ava->img);
+
+                $res->setHeader("Content-Type", "image/jpeg");
+
+                return $res;
+            }
+        }
+
+    }
+
+    return Status(false);
+
+});
 
 
 
