@@ -2,25 +2,12 @@
 
 use Phalcon\Http\Response;
 
-/**
- * Local variables
- * @var \Phalcon\Mvc\Micro $app
- */
-
-/**
- * Add your routes here
- */
-//$app->get('/', function () use ($app) {
-//    echo $app['view']->render('index');
-//});
-
 //login, pass, name, info
 $app->get('/register', function () use ($app) {
 
     $auth=$app->session->get("auth");
 
     if (!$auth) {
-
 
         $req = $app->request;
 
@@ -621,8 +608,6 @@ $app->post('/avatar/upload', function () use ($app) {
     if ($auth) {
 
         $myLogin = $app->session->get("auth")["login"];
-        //$reqFile = $app->request->getUploadedFiles()[0];
-        //$fileData = file_get_contents($reqFile->getTempName());
 
         $user = User::findFirst(
             array(
@@ -633,7 +618,7 @@ $app->post('/avatar/upload', function () use ($app) {
             )
         );
 
-        if ($user /*&& $fileData*/) {
+        if ($user) {
 
             $avaAll = $user->getImage();
 
@@ -704,10 +689,7 @@ $app->get('/avatar/show', function () use ($app) {
 });
 
 
-
-/**
- * Not found handler
- */
+//Not found handler
 $app->notFound(function () use ($app) {
 
     $app->response->setStatusCode(404, "Not Found")->sendHeaders();
@@ -730,6 +712,5 @@ function Status($val){
 
     return $res;
 }
-
 
 
